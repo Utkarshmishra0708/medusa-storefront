@@ -1,13 +1,12 @@
 import { Container, clx } from "@medusajs/ui"
 import Image from "next/image"
-import React from "react"
+import React, { useState } from "react"
 
 import PlaceholderImage from "@modules/common/icons/placeholder-image"
 
 type ThumbnailProps = {
   thumbnail?: string | null
-  // TODO: Fix image typings
-  images?: any[] | null
+  images?: { url: string }[] | null
   size?: "small" | "medium" | "large" | "full" | "square"
   isFeatured?: boolean
   className?: string
@@ -22,12 +21,16 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
   className,
   "data-testid": dataTestid,
 }) => {
-  const initialImage = thumbnail || images?.[0]?.url
+  // ✅ Determine which image to display
+  const mainImage =
+    thumbnail ||
+    images?.find((img) => !!img?.url)?.url ||
+    "/placeholder.png"
 
   return (
     <Container
       className={clx(
-        "relative w-full overflow-hidden p-4 bg-ui-bg-subtle shadow-elevation-card-rest rounded-large group-hover:shadow-elevation-card-hover transition-shadow ease-in-out duration-150",
+        "relative w-full overflow-hidden bg-ui-bg-subtle shadow-elevation-card-rest rounded-large group-hover:shadow-elevation-card-hover transition-shadow ease-in-out duration-150",
         className,
         {
           "aspect-[11/14]": isFeatured,
@@ -41,7 +44,7 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       )}
       data-testid={dataTestid}
     >
-      <ImageOrPlaceholder image={initialImage} size={size} />
+      <ImageOrPlaceholder image={mainImage} size={size} />
     </Container>
   )
 }
@@ -50,20 +53,28 @@ const ImageOrPlaceholder = ({
   image,
   size,
 }: Pick<ThumbnailProps, "size"> & { image?: string }) => {
-  return image ? (
+  const [error, setError] = useState(false)
+
+  if (!image || error) {
+    return (
+      <div className="w-full h-full absolute inset-0 flex items-center justify-center">
+        <PlaceholderImage size={size === "small" ? 16 : 24} />
+      </div>
+    )
+  }
+
+  return (
     <Image
       src={image}
-      alt="Thumbnail"
-      className="absolute inset-0 object-cover object-center"
+      alt="Product thumbnail"
+      className="absolute inset-0 object-cover object-center rounded-md"
       draggable={false}
-      quality={50}
-      sizes="(max-width: 576px) 280px, (max-width: 768px) 360px, (max-width: 992px) 480px, 800px"
       fill
+      priority={true}
+      onError={() => setError(true)}
+      quality={75}
+      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
     />
-  ) : (
-    <div className="w-full h-full absolute inset-0 flex items-center justify-center">
-      <PlaceholderImage size={size === "small" ? 16 : 24} />
-    </div>
   )
 }
 
